@@ -74,7 +74,7 @@
 			\item If testing on uni-variate problems, such as language modeling and image density estimation, adding stochastic variable would harm log-likelihood results.
 		\end{itemize} 
 		\item \textbf{Goal}: To find out the true reason for distinct conclusions, and have a better understanding of the role of stochastic latent variables in the sequential model. 
-		\item Notation: Denote the data sample as $x = \{\rvs_1, \rvs_2, \cdots, \rvs_T\}, \rvs \in \R^L $
+		\item \textbf{Notation}: Denote the data sample as $x = \{\rvs_1, \rvs_2, \cdots, \rvs_T\}, \rvs \in \R^L $
 		\end{itemize}
 		\vspace{-1em}
   \end{block}
@@ -194,11 +194,11 @@
 	We can explicitly introduce the intra-step dependency of variables to the sequential models (both RNN and SRNN) by using an auto-regressive decomposition at the intra-step level. More specifically, the RNN and SRNN output distribution are written as,
 	\begin{align}
 	\label{eqn:ar_rnn_out_dist}
-	p_\theta(x_t \mid \rvx_{<t})
-	&= \prod_{i=1}^{L} p_{\theta}(x_{t,i} \mid \rvx_{<t}, x_{t,<i}), \\
+	p_\theta(s_t \mid \rvs_{<t})
+	&= \prod_{i=1}^{L} p_{\theta}(s_{t,i} \mid \rvs_{<t}, x_{t,<i}), \\
 	\label{eqn:ar_srnn_out_dist}
-	p_\theta(x_t \mid \rvz_{\le t}, \rvx_{<t})
-	&= \prod_{i=1}^{L} p_{\theta}(x_{t,i} \mid \rvz_{\le t}, \rvx_{<t}, x_{t,<i}).
+	p_\theta(s_t \mid \rvz_{\le t}, \rvs_{<t})
+	&= \prod_{i=1}^{L} p_{\theta}(s_{t,i} \mid \rvz_{\le t}, \rvs_{<t}, x_{t,<i}).
 	\end{align}
 	We named these models as RNN-hier and SRNN-hier. The experiment results are as follows,
 	\begin{table}[!t]
@@ -214,7 +214,7 @@
 				\midrule
 				RNN               & 32,745      & 0.786      & 7,610     & -6.991     & -3.400     \\
 				\midrule\midrule
-				RNN-hier            & \bf 109,641     & \bf 3.1822     & \bf 21,950     & \textbf{-5.161} & \bf -2.028 \\
+				RNN-hier            & \textbf{109,641}     & \textbf{3.1822}     & \textbf{21,950}     & \textbf{-5.161} & \textbf{-2.028} \\
 				SRNN-hier           & 107,912     & 3.1423     & 21,845     & -5.483     & -2.065    \\
 				\bottomrule
 			\end{tabular}
