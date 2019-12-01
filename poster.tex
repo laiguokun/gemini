@@ -78,7 +78,7 @@
 			\item \textbf{Uni-variate} setting: stochastic variables \cyan{\bf harm} log-likelihood (e.g. language / image modeling)
 		\end{itemize} 
 		\item \textbf{Goal}: A better understanding of \textbf{why} or \textbf{whether} stochastic variables are helpful in the sequence modeling
-		\item \textbf{Notation}: Denote the data sample as $\rvx = \{\rvs_1, \rvs_2, \cdots, \rvs_T\}, \rvs_\tau \in \R^L$
+		\item \textbf{Notation}: Denote the data sample as $\rvx = \{\rvx_1, \rvx_2, \cdots, \rvx_T\}, \rvx_\tau \in \R^L$
 		\end{itemize}
 		\vspace{-1em}
   \end{block}
@@ -90,8 +90,8 @@
 	\vspace{-1em}
 	\begin{align*}
 	\log p(\rvx) 
-	= \sum_{\tau=1}^{T} \log p(\rvs_{\tau} \mid \rvs_{<\tau})
-	\approx \sum_{\tau=1}^{T} \sum_{i=1}^{L} \log p(s_{\tau,i} \mid \rvs_{<\tau})
+	= \sum_{\tau=1}^{T} \log p(\rvx_{\tau} \mid \rvx_{<\tau})
+	\approx \sum_{\tau=1}^{T} \sum_{i=1}^{L} \log p(x_{\tau,i} \mid \rvx_{<\tau})
 	\end{align*}
 	\vspace{-1em}
   \end{block}
@@ -103,10 +103,10 @@
 	\vspace{-1em}
 	\begin{align*}
 	\log p(\rvx) 
-	&= \sum_{\tau=1}^{T} \log p(\rvs_{\tau} \mid \rvs_{<\tau}) 
-	= \sum_{\tau=1}^{T} \log \int p(\rvs_{\tau}, \rvz_\tau \mid \rvs_{<\tau}) d\rvz_\tau && \text{(add $\rvz_\tau$ for each $\rvs_\tau$)} \\
-	&= \sum_{\tau=1}^{T} \log \int p(\rvs_{\tau} \mid \rvz_\tau , \rvs_{<\tau}) p(\rvz_\tau \mid \rvs_{<\tau}) d\rvz_\tau && \text{(product rule)} \\
-	&\approx \sum_{\tau=1}^{T} \log \int \sbr{ \prod_{i=1}^{L} p(s_{\tau,i} \mid \rvz_\tau , \rvs_{<\tau}) } p(\rvz_\tau \mid \rvs_{<\tau}) d\rvz_\tau && \text{(factorized)}
+	&= \sum_{\tau=1}^{T} \log p(\rvx_{\tau} \mid \rvx_{<\tau}) 
+	= \sum_{\tau=1}^{T} \log \int p(\rvx_{\tau}, \rvz_\tau \mid \rvx_{<\tau}) d\rvz_\tau && \text{(add $\rvz_\tau$ for each $\rvx_\tau$)} \\
+	&= \sum_{\tau=1}^{T} \log \int p(\rvx_{\tau} \mid \rvz_\tau , \rvx_{<\tau}) p(\rvz_\tau \mid \rvx_{<\tau}) d\rvz_\tau && \text{(product rule)} \\
+	&\approx \sum_{\tau=1}^{T} \log \int \sbr{ \prod_{i=1}^{L} p(x_{\tau,i} \mid \rvz_\tau , \rvx_{<\tau}) } p(\rvz_\tau \mid \rvx_{<\tau}) d\rvz_\tau && \text{(factorized)}
 	\end{align*}
 \end{block}
 \end{column}
@@ -124,16 +124,16 @@
 \begin{block}{Implicit Unfairness in Capacity}
  	\textbf{RNN}: \textbf{fully factorized} prediction distribution
  	\[ 
- 		p^\text{RNN}(s_{\tau} \mid \rvs_{<\tau}) \approx \prod_{i=1}^{L} p(s_{\tau,i} \mid \rvs_{<\tau})
+ 		p^\text{RNN}(x_{\tau} \mid \rvx_{<\tau}) \approx \prod_{i=1}^{L} p(x_{\tau,i} \mid \rvx_{<\tau})
  	\]
  	\textbf{SRNN}: \textbf{NOT} fully factorized anymore due to the integration
  	\[
- 		p^\text{SRNN}(s_{\tau} \mid s_{<\tau}) \approx \int  \prod_{i=1}^{L} p(s_{\tau,i} \mid \rvs_{<\tau}, \rvz_\tau) p(\rvz_\tau \mid \rvs_{< \tau}) d \rvz_\tau
+ 		p^\text{SRNN}(x_{\tau} \mid \rvx_{<\tau}) \approx \int  \prod_{i=1}^{L} p(x_{\tau,i} \mid \rvx_{<\tau}, \rvz_\tau) p(\rvz_\tau \mid \rvx_{< \tau}) d \rvz_\tau
  	\]
  	
  	\textbf{In summary},
  	\begin{itemize}
- 	\item SRNN is able to model the correlation within each step $\rvs_\tau$, i.e. $\set{s_{\tau,i}}_{i=1}^{L}$
+ 	\item SRNN is able to model the correlation within each step $\rvx_\tau$, i.e. $\set{x_{\tau,i}}_{i=1}^{L}$
  	\item RNN does not have the capacity due to the fully factorized design
  	\end{itemize}
 \end{block}
@@ -141,9 +141,9 @@
 \begin{block}{How does SRNN model the intra-step correlation?}
 	Examine the ELBO for a prediction step $\tau$:
 	\begin{equation}\label{eqn:elbo}
-		\mc{L}^\text{SRNN}_\tau = \E_{\rvz_\tau \sim q(\rvz_{\tau} \mid \rvx)} \sbr{ \sum_{i=1}^{L} \log p(s_{\tau,i} \mid \rvz_\tau, \rvs_{<\tau}) } - \text{KL}\rbr{q(\rvz_{\tau} \mid \rvx) \| p(\rvz_{\tau} \mid \rvs_{<\tau})}
+		\mc{L}^\text{SRNN}_\tau = \E_{\rvz_\tau \sim q(\rvz_{\tau} \mid \rvx)} \sbr{ \sum_{i=1}^{L} \log p(x_{\tau,i} \mid \rvz_\tau, \rvx_{<\tau}) } - \text{KL}\rbr{q(\rvz_{\tau} \mid \rvx) \| p(\rvz_{\tau} \mid \rvx_{<\tau})}
 	\end{equation}
-	\textbf{Observation}: $\rvz_{\tau}$ conditions on $\rvs_\tau$ ($\rvx$ includes $\rvs_\tau$) $\implies$ SRNN can \textbf{leak ``\cyan{partial information}''} of $\rvs_{\tau}$ through $\rvz_{\tau}$
+	\textbf{Observation}: $\rvz_{\tau}$ conditions on $\rvx_\tau$ ($\rvx$ includes $\rvx_\tau$) $\implies$ SRNN can \textbf{leak ``\cyan{partial information}''} of $\rvx_{\tau}$ through $\rvz_{\tau}$
 	\begin{itemize}
 		\item \textbf{Recon. term}: the cost of predicting the rest of the information \textbf{given the ``\cyan{partial information}''}
 		\item \textbf{KL term}: the cost of \textbf{obtaining the ``\cyan{partial information}''}
@@ -151,30 +151,30 @@
 \end{block}
 
 \begin{alertblock}{A concrete example}
- 	(I) Assume $\rvz_{\tau} = s_{\tau, L} \in \R$, i.e., leak the last element of $\rvs_{\tau}$ as the partial information. Formally,
- 	\[ q(\rvz_{\tau} \mid \rvx) = \delta_{\rvz_{\tau} = s_{\tau, L}} = 
+ 	(I) Assume $\rvz_{\tau} = x_{\tau, L} \in \R$, i.e., leak the last element of $\rvx_{\tau}$ as the partial information. Formally,
+ 	\[ q(\rvz_{\tau} \mid \rvx) = \delta_{\rvz_{\tau} = x_{\tau, L}} = 
  	\begin{cases}
- 	\infty, & \text{if $\rvz_{\tau} = s_{\tau, L}$} \\
- 	0, &\text{if $\rvz_{\tau} \neq s_{\tau, L}$} \\
+ 	\infty, & \text{if $\rvz_{\tau} = x_{\tau, L}$} \\
+ 	0, &\text{if $\rvz_{\tau} \neq x_{\tau, L}$} \\
  	\end{cases} 
  	\]
  	
  	(II) Plug this term into ELBO equation \eqref{eqn:elbo}:
  	\begin{align*}
  	\mc{L}^\text{SRNN}_\tau
- 	&= \cancel{ \gray{ \sbr[\bigg]{ \log p(s_{\tau,L} \mid s_{\tau,L}, \rvs_{<\tau}) - \log q(s_{\tau,L} \mid \rvx) } } } && \text{$\implies$ cancel out} \\
+ 	&= \cancel{ \gray{ \sbr[\bigg]{ \log p(x_{\tau,L} \mid x_{\tau,L}, \rvx_{<\tau}) - \log q(x_{\tau,L} \mid \rvx) } } } && \text{$\implies$ cancel out} \\
  	&+ \sbr[\bigg]{ 
- 		\underbrace{\vphantom{\sum_{i=1}^{L-1}} \log p(s_{\tau,L} \mid \rvs_{<\tau})}_\text{Predict $s_{\tau,L}$ first} + 
- 		\underbrace{\sum_{i=1}^{L-1} \log p(s_{\tau,i} \mid s_{\tau,L}, \rvs_{<\tau}) }_\text{Predict others conditioned on $s_{\tau,L}$}}
+ 		\underbrace{\vphantom{\sum_{i=1}^{L-1}} \log p(x_{\tau,L} \mid \rvx_{<\tau})}_\text{Predict $x_{\tau,L}$ first} + 
+ 		\underbrace{\sum_{i=1}^{L-1} \log p(x_{\tau,i} \mid x_{\tau,L}, \rvx_{<\tau}) }_\text{Predict others conditioned on $x_{\tau,L}$}}
  	\end{align*}
  	
  	(III) Compare SRNN with RNN:
  	\begin{align*}
  	\mc{L}^\text{SRNN}_\tau
- 	&= \log p(s_{\tau,L} \mid \rvs_{<\tau}) + \sum_{i=1}^{L-1} \log p(s_{\tau,i} \mid \magenta{s_{\tau,L}}, \rvs_{<\tau}) \\
+ 	&= \log p(x_{\tau,L} \mid \rvx_{<\tau}) + \sum_{i=1}^{L-1} \log p(x_{\tau,i} \mid \magenta{x_{\tau,L}}, \rvx_{<\tau}) \\
  	\mc{L}^\text{RNN}_\tau
  	%  &= \sum_{i=1}^{L} \log p(s_{\tau,i} \mid \rvs_{<\tau}) \\ 
- 	&= \log p(s_{\tau,L} \mid \rvs_{<\tau}) + \sum_{i=1}^{L-1} \log p(s_{\tau,i} \mid \rvs_{<\tau})
+ 	&= \log p(x_{\tau,L} \mid \rvx_{<\tau}) + \sum_{i=1}^{L-1} \log p(x_{\tau,i} \mid \rvx_{<\tau})
  	\end{align*}
  	\begin{itemize}
  		\item Addition intra-step dependency \magenta{\bf shown in SRNN} that is \cyan{\bf absent in RNN}
@@ -192,19 +192,19 @@
 \begin{block}{Simulate information leak with RNN}
 	(I) Consider a more general case:
 	\begin{itemize}
-	\item Leak a subset $\rvc_\tau \subset \rvs_\tau$ of $\rvs_\tau$
-	\item Predict the rest $\rvs_\tau \backslash \rvc_\tau$ given $\rvc_\tau$
+	\item Leak a subset $\rvc_\tau \subset \rvx_\tau$ of $\rvx_\tau$
+	\item Predict the rest $\rvx_\tau \backslash \rvc_\tau$ given $\rvc_\tau$
 	\end{itemize}
 	  
 	(II) Simulate the case in RNN with the following objective function:
 	\begin{align*}
-		\log p(\rvs_{\tau} \mid \rvs_{<\tau}) \approx \log p(\rvc_{\tau} \mid \rvs_{<\tau}) + \log p(\rvs_{\tau} \backslash \rvc_{\tau} \mid \rvs_{<\tau}, \rvc_{\tau})
+		\log p(\rvx_{\tau} \mid \rvx_{<\tau}) \approx \log p(\rvc_{\tau} \mid \rvx_{<\tau}) + \log p(\rvx_{\tau} \backslash \rvc_{\tau} \mid \rvx_{<\tau}, \rvc_{\tau})
 	\end{align*}
 	
 	(III) Two strategies to construct the subset $\rvc_{\tau}$:
 	\begin{itemize}
-		\item Interleave, every $U$ elements: $\rvc_{\tau} = \seq{s_{\tau,1}, s_{\tau,U+1}, s_{\tau,2U+1}, \cdots }$
-		\item Randomly choose $V$ distinct elements : $\rvc_{\tau} = \text{random}(\rvs_{\tau}, V)$
+		\item Interleave, every $U$ elements: $\rvc_{\tau} = \seq{x_{\tau,1}, x_{\tau,U+1}, x_{\tau,2U+1}, \cdots }$
+		\item Randomly choose $V$ distinct elements : $\rvc_{\tau} = \text{random}(\rvx_{\tau}, V)$
 	\end{itemize}
 
 	\begin{table}[!h]
@@ -234,11 +234,11 @@
 	Introduce the auto-regressive structure in both RNN \& SRNN:
 	\begin{align}
 	\label{eqn:ar_rnn_out_dist}
-	p_\theta^\text{RNN-hier}(s_t \mid \rvs_{<t})
-	&= \prod_{i=1}^{L} p_{\theta}(s_{t,i} \mid \rvs_{<t}, x_{t,<i}), \\
+	p_\theta^\text{RNN-hier}(x_t \mid \rvx_{<t})
+	&= \prod_{i=1}^{L} p_{\theta}(x_{t,i} \mid \rvx_{<t}, x_{t,<i}), \\
 	\label{eqn:ar_srnn_out_dist}
-	p_\theta^\text{SRNN-hier}(s_t \mid \rvz_{\le t}, \rvs_{<t})
-	&= \prod_{i=1}^{L} p_{\theta}(s_{t,i} \mid \rvz_{\le t}, \rvs_{<t}, x_{t,<i}).
+	p_\theta^\text{SRNN-hier}(x_t \mid \rvz_{\le t}, \rvx_{<t})
+	&= \prod_{i=1}^{L} p_{\theta}(x_{t,i} \mid \rvz_{\le t}, \rvx_{<t}, x_{t,<i}).
 	\end{align}
 	\begin{table}[!t]
 		\centering
