@@ -17,6 +17,11 @@
 \usepackage{tikz}
 \usepackage{pgfplots}
 
+\input{symbol}
+\input{custom}
+\usepackage{tikzsymbols}
+\usepackage{changepage}
+
 % ====================
 % Lengths
 % ====================
@@ -30,8 +35,7 @@
 
 \newcommand{\separatorcolumn}{\begin{column}{\sepwidth}\end{column}}
 %DeclareTextCommandDefault{\nobreakspace}{\leavevmode\nobreak\ } 
-\input{symbol}
-\input{custom}
+
 % ====================
 % Title
 % ====================
@@ -64,36 +68,37 @@
 
 \begin{column}{\colwidth}
 
-  \begin{block}{Problem Definition}
+  \begin{block}{Problem Overview}
 
 	    \begin{itemize}
-		\item \textbf{Task}: Estimate the probability density of a data sample with a sequential structure, such as music scores and signal value of a detector cluster. 
-		\item \textbf{Problem}: Previous publications show contradict conclusions about introducing stochastic variables into the sequential model (e.g. RNN) in multivariate and uni-variate domains. 
+		\item \textbf{Task}: Density estimation of sequences, i.e. $p(\rvx)$
+		\item \textbf{Problem}: Distinct behavior of \textbf{stochastic variables} in sequence modeling
 	    \begin{itemize}
-			\item If testing on multivariate problems, adding stochastic variable would improve log-likelihood results \cite{chung2015recurrent,fraccaro2016sequential,goyal2017z}.
-			\item If testing on uni-variate problems, such as language modeling and image density estimation, adding stochastic variable would harm log-likelihood results.
+			\item \textbf{Multi-variate} setting: stochastic variables \magenta{\bf improve} log-likelihood (e.g. speech, midi music~\cite{chung2015recurrent,fraccaro2016sequential,goyal2017z})
+			\item \textbf{Uni-variate} setting: stochastic variables \cyan{\bf harm} log-likelihood (e.g. language / image modeling)
 		\end{itemize} 
-		\item \textbf{Goal}: To find out the true reason for distinct conclusions, and have a better understanding of the role of stochastic latent variables in the sequential model. 
-		\item \textbf{Notation}: Denote the data sample as $x = \{\rvs_1, \rvs_2, \cdots, \rvs_T\}, \rvs \in \R^L $
+		\item \textbf{Goal}: A better understanding of \textbf{why} or \textbf{whether} stochastic variables are helpful in the sequence modeling
+		\item \textbf{Notation}: Denote the data sample as $\rvx = \{\rvs_1, \rvs_2, \cdots, \rvs_T\}, \rvs_\tau \in \R^L$
 		\end{itemize}
 		\vspace{-1em}
   \end{block}
 
   \begin{block}{Basic framework - RNN}
 	\begin{figure}
-		\includegraphics[width=0.9\linewidth]{fig/RNN-L4.pdf}
+		\includegraphics[width=0.85\linewidth]{fig/RNN-L4.pdf}
 	\end{figure}
 	\vspace{-1em}
 	\begin{align*}
 	\log p(\rvx) 
 	= \sum_{\tau=1}^{T} \log p(\rvs_{\tau} \mid \rvs_{<\tau})
+	\approx \sum_{\tau=1}^{T} \sum_{i=1}^{L} \log p(s_{\tau,i} \mid \rvs_{<\tau})
 	\end{align*}
 	\vspace{-1em}
   \end{block}
 
-  \begin{block}{Basic framework - Stochastic RNN}
+  \begin{block}{Basic framework - Stochastic RNN (SRNN) via VAE}
 	\begin{figure}
-	\includegraphics[width=0.9\linewidth]{fig/SRNN-L4-prior.pdf}
+	\includegraphics[width=0.85\linewidth]{fig/SRNN-L4-ELBO.pdf} % {fig/SRNN-L4-prior.pdf}
 	\end{figure}
 	\vspace{-1em}
 	\begin{align*}
@@ -101,6 +106,7 @@
 	&= \sum_{\tau=1}^{T} \log p(\rvs_{\tau} \mid \rvs_{<\tau}) 
 	= \sum_{\tau=1}^{T} \log \int p(\rvs_{\tau}, \rvz_\tau \mid \rvs_{<\tau}) d\rvz_\tau && \text{(add $\rvz_\tau$ for each $\rvs_\tau$)} \\
 	&= \sum_{\tau=1}^{T} \log \int p(\rvs_{\tau} \mid \rvz_\tau , \rvs_{<\tau}) p(\rvz_\tau \mid \rvs_{<\tau}) d\rvz_\tau && \text{(product rule)} \\
+	&\approx \sum_{\tau=1}^{T} \log \int \sbr{ \prod_{i=1}^{L} p(s_{\tau,i} \mid \rvz_\tau , \rvs_{<\tau}) } p(\rvz_\tau \mid \rvs_{<\tau}) d\rvz_\tau && \text{(factorized)}
 	\end{align*}
 \end{block}
 \end{column}
@@ -109,47 +115,73 @@
 
 \begin{column}{\colwidth}
 
-  \begin{block}{Optimization of Stochastic RNN}
-	\begin{figure}
-	\includegraphics[width=0.9\linewidth]{fig/SRNN-L4-ELBO.pdf}
-	\end{figure}
-  \end{block}
+%  \begin{block}{Optimization of Stochastic RNN}
+%	\begin{figure}
+%	\includegraphics[width=0.9\linewidth]{fig/SRNN-L4-ELBO.pdf}
+%	\end{figure}
+%  \end{block}
 
-  \begin{block}{Revisiting the superior performance of SRNN}
-		\textbf{Hypothesis}: SRNN can ``unfairly'' take advantage of the \magenta{segment correlation} within the output step
-		\textbf{Informal argument}:
-		\begin{itemize}
-			\item Consider the loss for the following prediction step
-			\[ \E_{\rvz_\tau \sim q(\rvz_{\tau} \mid \rvx)} \sbr{ \sum_{i=1}^{L} \log p(s_{\tau,i} \mid \rvz_\tau, \rvs_{<\tau}) } - \text{KL}\rbr{q(\rvz_{\tau} \mid \rvx) \| p(\rvz_{\tau} \mid \rvs_{<\tau})} \]
-			\item $\rvz_{\tau}$ depends on $\rvx$ (including $\rvs_\tau$) $\implies$ $\rvz_{\tau}$ can contain ``\cyan{partial information}'' about $\rvs_{\tau}$
-			\item KL term: the cost of obtaining the partial information 
-			\item Reconstruction term: the cost of predicting the rest of the information \textbf{given the partial information}
-		\item A concrete case: $\rvz_{\tau} \in \R$ and $\rvz_{\tau}$ contains the information of the element $s_{\tau, L}$ (the last element) in $\rvs_{\tau}$ (partial info.):
-		\[ q(\rvz_{\tau} \mid \rvx) = \delta_{\rvz_{\tau} = s_{\tau, L}} = 
-		\begin{cases}
-		\infty, & \text{if $\rvz_{\tau} = s_{\tau, L}$} \\
-		0, &\text{if $\rvz_{\tau} \neq s_{\tau, L}$} \\
-		\end{cases} 
-		\]
-		
-		\item Replace this term into ELBO loss function
-		\begin{align*}
-		\mc{L}_\text{SRNN} 
-		&= \sbr[\bigg]{ \log p(s_{\tau,L} \mid s_{\tau,L}, \rvs_{<\tau}) - \log q(s_{\tau,L} \mid \rvx) } && \text{$\implies$ cancel out} \\
-		&+ \sbr[\bigg]{ 
-			\underbrace{\vphantom{\sum_{i=1}^{L-1}} \log p(s_{\tau,L} \mid \rvs_{<\tau})}_\text{Predict $s_{\tau,L}$ first} + 
-			\underbrace{\sum_{i=1}^{L-1} \log p(s_{\tau,i} \mid s_{\tau,L}, \rvs_{<\tau}) }_\text{Predict others conditioned on $s_{\tau,L}$}}
-		\end{align*}
-		\item Compare SRNN with RNN:
-		\begin{align*}
-		\mc{L}_\text{SRNN} 
-		&= \log p(s_{\tau,L} \mid \rvs_{<\tau}) + \sum_{i=1}^{L-1} \log p(s_{\tau,i} \mid \magenta{s_{\tau,L}}, \rvs_{<\tau}) \\
-		\mc{L}_\text{RNN} 
-		&= \sum_{i=1}^{L} \log p(s_{\tau,i} \mid \rvs_{<\tau}) \\ 
-		&= \log p(s_{\tau,L} \mid \rvs_{<\tau}) + \sum_{i=1}^{L-1} \log p(s_{\tau,i} \mid \rvs_{<\tau}) \\
-		\end{align*}
-	\end{itemize}
-  \end{block}
+\begin{block}{Implicit Unfairness in Capacity}
+ 	\textbf{RNN}: \textbf{fully factorized} prediction distribution
+ 	\[ 
+ 		p^\text{RNN}(s_{\tau} \mid \rvs_{<\tau}) \approx \prod_{i=1}^{L} p(s_{\tau,i} \mid \rvs_{<\tau})
+ 	\]
+ 	\textbf{SRNN}: \textbf{NOT} fully factorized anymore due to the integration
+ 	\[
+ 		p^\text{SRNN}(s_{\tau} \mid s_{<\tau}) \approx \int  \prod_{i=1}^{L} p(s_{\tau,i} \mid \rvs_{<\tau}, \rvz_\tau) p(\rvz_\tau \mid \rvs_{< \tau}) d \rvz_\tau
+ 	\]
+ 	
+ 	\textbf{In summary},
+ 	\begin{itemize}
+ 	\item SRNN is able to model the correlation within each step $\rvs_\tau$, i.e. $\set{s_{\tau,i}}_{i=1}^{L}$
+ 	\item RNN does not have the capacity due to the fully factorized design
+ 	\end{itemize}
+\end{block}
+
+\begin{block}{How does SRNN model the intra-step correlation?}
+	Examine the ELBO for a prediction step $\tau$:
+	\begin{equation}\label{eqn:elbo}
+		\mc{L}^\text{SRNN}_\tau = \E_{\rvz_\tau \sim q(\rvz_{\tau} \mid \rvx)} \sbr{ \sum_{i=1}^{L} \log p(s_{\tau,i} \mid \rvz_\tau, \rvs_{<\tau}) } - \text{KL}\rbr{q(\rvz_{\tau} \mid \rvx) \| p(\rvz_{\tau} \mid \rvs_{<\tau})}
+	\end{equation}
+	\textbf{Observation}: $\rvz_{\tau}$ conditions on $\rvs_\tau$ ($\rvx$ includes $\rvs_\tau$) $\implies$ SRNN can \textbf{leak ``\cyan{partial information}''} of $\rvs_{\tau}$ through $\rvz_{\tau}$
+	\begin{itemize}
+		\item \textbf{Recon. term}: the cost of predicting the rest of the information \textbf{given the ``\cyan{partial information}''}
+		\item \textbf{KL term}: the cost of \textbf{obtaining the ``\cyan{partial information}''}
+	\end{itemize} 
+\end{block}
+
+\begin{alertblock}{A concrete example}
+ 	(I) Assume $\rvz_{\tau} = s_{\tau, L} \in \R$, i.e., leak the last element of $\rvs_{\tau}$ as the partial information. Formally,
+ 	\[ q(\rvz_{\tau} \mid \rvx) = \delta_{\rvz_{\tau} = s_{\tau, L}} = 
+ 	\begin{cases}
+ 	\infty, & \text{if $\rvz_{\tau} = s_{\tau, L}$} \\
+ 	0, &\text{if $\rvz_{\tau} \neq s_{\tau, L}$} \\
+ 	\end{cases} 
+ 	\]
+ 	
+ 	(II) Plug this term into ELBO equation \eqref{eqn:elbo}:
+ 	\begin{align*}
+ 	\mc{L}^\text{SRNN}_\tau
+ 	&= \cancel{ \gray{ \sbr[\bigg]{ \log p(s_{\tau,L} \mid s_{\tau,L}, \rvs_{<\tau}) - \log q(s_{\tau,L} \mid \rvx) } } } && \text{$\implies$ cancel out} \\
+ 	&+ \sbr[\bigg]{ 
+ 		\underbrace{\vphantom{\sum_{i=1}^{L-1}} \log p(s_{\tau,L} \mid \rvs_{<\tau})}_\text{Predict $s_{\tau,L}$ first} + 
+ 		\underbrace{\sum_{i=1}^{L-1} \log p(s_{\tau,i} \mid s_{\tau,L}, \rvs_{<\tau}) }_\text{Predict others conditioned on $s_{\tau,L}$}}
+ 	\end{align*}
+ 	
+ 	(III) Compare SRNN with RNN:
+ 	\begin{align*}
+ 	\mc{L}^\text{SRNN}_\tau
+ 	&= \log p(s_{\tau,L} \mid \rvs_{<\tau}) + \sum_{i=1}^{L-1} \log p(s_{\tau,i} \mid \magenta{s_{\tau,L}}, \rvs_{<\tau}) \\
+ 	\mc{L}^\text{RNN}_\tau
+ 	%  &= \sum_{i=1}^{L} \log p(s_{\tau,i} \mid \rvs_{<\tau}) \\ 
+ 	&= \log p(s_{\tau,L} \mid \rvs_{<\tau}) + \sum_{i=1}^{L-1} \log p(s_{\tau,i} \mid \rvs_{<\tau})
+ 	\end{align*}
+ 	\begin{itemize}
+ 		\item Addition intra-step dependency \magenta{\bf shown in SRNN} that is \cyan{\bf absent in RNN}
+ 	\end{itemize}
+\end{alertblock}
+
+\textbf{Question}: what if we allow RNN to model intra-step dependency?
 
 \end{column}
 
@@ -157,18 +189,26 @@
 
 \begin{column}{\colwidth}
 
-  \begin{block}{Verify the Hypothesis via Experiments}
-	In order to verify the hypothesis, we train a RNN with the loss function: 
+\begin{block}{Simulate information leak with RNN}
+	(I) Consider a more general case:
+	\begin{itemize}
+	\item Leak a subset $\rvc_\tau \subset \rvs_\tau$ of $\rvs_\tau$
+	\item Predict the rest $\rvs_\tau \backslash \rvc_\tau$ given $\rvc_\tau$
+	\end{itemize}
+	  
+	(II) Simulate the case in RNN with the following objective function:
 	\begin{align*}
-		\log p(\rvs_{\tau} \mid \rvs_{<\tau}) = \log p(\rvc_{\tau} \mid \rvs_{<\tau}) + \log p(\rvs_{\tau} \backslash \rvc_{\tau} \mid \rvs_{<\tau}, \rvc_{\tau})
+		\log p(\rvs_{\tau} \mid \rvs_{<\tau}) \approx \log p(\rvc_{\tau} \mid \rvs_{<\tau}) + \log p(\rvs_{\tau} \backslash \rvc_{\tau} \mid \rvs_{<\tau}, \rvc_{\tau})
 	\end{align*}
-	We explore two strategies to construct the subset $\rvc_{\tau}$.
+	
+	(III) Two strategies to construct the subset $\rvc_{\tau}$:
 	\begin{itemize}
 		\item Interleave, every $U$ elements: $\rvc_{\tau} = \seq{s_{\tau,1}, s_{\tau,U+1}, s_{\tau,2U+1}, \cdots }$
 		\item Randomly choose $V$ distinct elements : $\rvc_{\tau} = \text{random}(\rvs_{\tau}, V)$
 	\end{itemize}
 
 	\begin{table}[!h]
+		\small
 		\centering
 		\begin{tabular}{l|c c c}
 			\toprule
@@ -188,55 +228,60 @@
 		\vspace{-1.5em}
 		\label{tab:inter_step_correlation}
 	\end{table}
-  \end{block}
+\end{block}
 
-  \begin{block}{Modeling Simultaneity with Auto-Regressive Decomposition}
-	We can explicitly introduce the intra-step dependency of variables to the sequential models (both RNN and SRNN) by using an auto-regressive decomposition at the intra-step level. More specifically, the RNN and SRNN output distribution are written as,
+\begin{block}{Modeling Intra-step Correlation with an Auto-Regressive Structure}
+	Introduce the auto-regressive structure in both RNN \& SRNN:
 	\begin{align}
 	\label{eqn:ar_rnn_out_dist}
-	p_\theta(s_t \mid \rvs_{<t})
+	p_\theta^\text{RNN-hier}(s_t \mid \rvs_{<t})
 	&= \prod_{i=1}^{L} p_{\theta}(s_{t,i} \mid \rvs_{<t}, x_{t,<i}), \\
 	\label{eqn:ar_srnn_out_dist}
-	p_\theta(s_t \mid \rvz_{\le t}, \rvs_{<t})
+	p_\theta^\text{SRNN-hier}(s_t \mid \rvz_{\le t}, \rvs_{<t})
 	&= \prod_{i=1}^{L} p_{\theta}(s_{t,i} \mid \rvz_{\le t}, \rvs_{<t}, x_{t,<i}).
 	\end{align}
-	We named these models as RNN-hier and SRNN-hier. The experiment results are as follows,
 	\begin{table}[!t]
 		\centering
 		\small
-			\begin{tabular}{l|c c c | c c }
-				\toprule
-				\bf Models          & \bf TIMIT & \bf VCTK  & \bf Blizzard  & \bf Muse  & \bf Nottingham \\
-				\midrule
-				VRNN$^\dagger$\cite{chung2015recurrent}      & 28,982      & -          & 9,392      &  -         &  -      \\
-				SRNN$^\dagger$\cite{fraccaro2016sequential}      & 60,550      & -          & 11,991     &  -6.28     &  -2.94     \\\
-				Z-Forcing$^\dagger$\cite{goyal2017z}  & 70,469 & -          & 15,430     &  -         &  -       \\
-				\midrule
-				RNN               & 32,745      & 0.786      & 7,610     & -6.991     & -3.400     \\
-				\midrule\midrule
-				RNN-hier            & \textbf{109,641}     & \textbf{3.1822}     & \textbf{21,950}     & \textbf{-5.161} & \textbf{-2.028} \\
-				SRNN-hier           & 107,912     & 3.1423     & 21,845     & -5.483     & -2.065    \\
-				\bottomrule
-			\end{tabular}
-		\caption{Performance comparison on a diverse set of datasets. The models with $^\dagger$ indicate that the performances are directly copied from previous publications. N/A suggests the model is not application on the dataset. }
+		\begin{tabular}{l|c c c | c c }
+			\toprule
+			\bf Models          & \bf TIMIT & \bf VCTK  & \bf Blizzard  & \bf Muse  & \bf Nottingham \\
+			\midrule
+			VRNN~\cite{chung2015recurrent}      & 28,982      & -          & 9,392      &  -         &  -      \\
+			SRNN~\cite{fraccaro2016sequential}      & 60,550      & -          & 11,991     &  -6.28     &  -2.94     \\\
+			Z-Forcing~\cite{goyal2017z}  & 70,469 & -          & 15,430     &  -         &  -       \\
+			\midrule
+			RNN               & 32,745      & 0.786      & 7,610     & -6.991     & -3.400     \\
+			\midrule\midrule
+			RNN-hier            & \textbf{109,641}     & \textbf{3.1822}     & \textbf{21,950}     & \textbf{-5.161} & \textbf{-2.028} \\
+			SRNN-hier           & 107,912     & 3.1423     & 21,845     & -5.483     & -2.065    \\
+			\bottomrule
+		\end{tabular}
+		\caption{Performance comparison on a diverse set of datasets. - suggests the model is not application on the dataset. }
 		\label{tab:non_factorized}
 		\vspace{-1.5em}
 	\end{table}
 	\vspace{-1.0em}
-  \end{block}
-  \begin{block}{Conclusion}
-  	From our empirical observation, the main effect of latent variables is only to provide a mechanism to leverage the intra-step correlation, which is however, not as powerful as employing the straightforward auto-regressive decomposition.
-  	It remains unclear what leads to the significant gap between the theoretical potential of latent variables and their practical effectiveness, which we believe deserves more research attention.
-  	\vspace{-1.0em}
-  \end{block}
-  \begin{block}{References}
+\end{block}
+
+\begin{block}{Conclusion}
+	(1) Latent variables provides a mechanism to leverage the intra-step correlation
+	
+	(2) However, its capacity is clearly weaker compared to a simple auto-regressive structure
+%  	From our empirical observation, the main effect of latent variables is only to provide a mechanism to leverage the intra-step correlation, which is however, not as powerful as employing the straightforward auto-regressive decomposition.
+%  	It remains unclear what leads to the significant gap between the theoretical potential of latent variables and their practical effectiveness, which we believe deserves more research attention.
+%  	\vspace{-1.0em}
+\end{block}
+
+\begin{block}{References}
+	\vspace{-0.2em}
     \nocite{*}
 	\setbeamertemplate{bibliography entry article}{}
 	\setbeamertemplate{bibliography entry title}{}
 	\setbeamertemplate{bibliography entry location}{}
 	\setbeamertemplate{bibliography entry note}{}
     \footnotesize{\bibliographystyle{plain}\bibliography{poster}}
-  \end{block}
+\end{block}
 
 \end{column}
 
